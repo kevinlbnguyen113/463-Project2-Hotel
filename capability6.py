@@ -7,7 +7,9 @@ from capability5 import guestInfo
 
 
 def checkIn(guestName, checkInDate, checkOutDate, roomNumber, totalCharge, paymentsMade, balance):
-    if len(guestName.get()) == 0 or len(checkInDate.get()) == 0 or len(checkOutDate.get()) == 0 or not totalCharge.get().isnumeric() or not paymentsMade.get().isnumeric() or not balance.get().isnumeric():
+    if len(guestName.get()) == 0 or len(checkInDate.get()) == 0 or len(
+            checkOutDate.get()) == 0 or len(totalCharge.get()) == 0 or len(paymentsMade.get()) == 0 or len(
+        balance.get()) == 0:
         error = ''
         if len(guestName.get()) == 0:
             error += 'Guest Name not selected\n'
@@ -15,11 +17,11 @@ def checkIn(guestName, checkInDate, checkOutDate, roomNumber, totalCharge, payme
             error += 'Check In Date not selected\n'
         if len(checkOutDate.get()) == 0:
             error += 'Check Out Date not selected\n'
-        if not totalCharge.get().isnumeric():
+        if len(totalCharge.get()) == 0:
             error += 'Total Charge is not a number\n'
-        if not paymentsMade.get().isnumeric():
+        if len(paymentsMade.get()) == 0:
             error += 'Payments Made is not a number\n'
-        if not balance.get().isnumeric():
+        if len(balance.get()) == 0:
             error += 'Balance is not a number\n'
         messagebox.showerror('Missing Information', error)
     else:
@@ -32,7 +34,7 @@ def checkIn(guestName, checkInDate, checkOutDate, roomNumber, totalCharge, payme
             balance.get()) + ' WHERE roomNumber = ' + str(roomNumber.get())
         cur.execute(sql)
         conn.commit()
-        messagebox.showinfo('Check In Success', 'Guest' + guestName.get().rsplit(' ', 1)[0] + ' is checked in')
+        messagebox.showinfo('Check In Success', 'Guest ' + guestName.get().rsplit(' ', 1)[0] + ' is checked in')
 
 
 def checkOut(roomNumber):
@@ -41,6 +43,18 @@ def checkOut(roomNumber):
     sql = 'UPDATE Room SET RoomStatus = "Unavailable/Dirty" WHERE roomNumber = ' + str(roomNumber.get())
     cur.execute(sql)
     conn.commit()
+    messagebox.showinfo('Check Out Success', 'Checked Out Successfully')
+
+
+def my_tracer(a, win):
+    new_a = win.globalgetvar('a')
+    if new_a == '':
+        new_a = 0.0
+    new_b = win.globalgetvar('b')
+    if new_b == '':
+        new_b = 0.0
+    new_c = float(new_a) - float(new_b)
+    a.set(new_c)
 
 
 def room(roomNumber, firstName=None, lastName=None, dateMade=None, dateCheckIn=None, dateCheckOut=None):
@@ -69,7 +83,6 @@ def room(roomNumber, firstName=None, lastName=None, dateMade=None, dateCheckIn=N
     check_in_text = DateEntry(label_frame, bg='white', font=('Arial', 16))
     check_in_text.place(x=40, y=130)
     check_in_text.delete(0, END)
-    check_in_text.config(state='readonly')
 
     expected_check_out_label = Label(label_frame, text='Expected Check Out Date and Time', bg=background_color,
                                      fg='black', font=('Arial', 16))
@@ -77,7 +90,6 @@ def room(roomNumber, firstName=None, lastName=None, dateMade=None, dateCheckIn=N
     expected_check_out_text = DateEntry(label_frame, bg='white', font=('Arial', 16))
     expected_check_out_text.place(x=40, y=210)
     expected_check_out_text.delete(0, END)
-    expected_check_out_text.config(state='readonly')
 
     room_number_label = Label(label_frame, text='Room Number', bg=background_color, fg='black',
                               font=('Arial', 16))
@@ -102,22 +114,29 @@ def room(roomNumber, firstName=None, lastName=None, dateMade=None, dateCheckIn=N
     room_rate_text.insert(0, '$' + str(result[0][3]))
     room_rate_text.config(state='disabled')
 
+    total_charge_var = StringVar(name='a')
     total_charge_label = Label(label_frame, text='Total Charge', bg=background_color, fg='black',
                                font=('Arial', 16))
     total_charge_label.place(x=40, y=500)
-    total_charge_text = Entry(label_frame, bg='white', font=('Arial', 16))
+    total_charge_text = Entry(label_frame, bg='white', font=('Arial', 16), textvariable=total_charge_var)
     total_charge_text.place(x=40, y=530)
 
+    payments_made_var = StringVar(name='b')
     payments_made_label = Label(label_frame, text='Payments Made', bg=background_color, fg='black',
                                 font=('Arial', 16))
     payments_made_label.place(x=40, y=580)
-    payments_made_text = Entry(label_frame, bg='white', font=('Arial', 16))
+    payments_made_text = Entry(label_frame, bg='white', font=('Arial', 16), textvariable=payments_made_var)
     payments_made_text.place(x=40, y=610)
 
+    balance_var = StringVar(name='c')
     balance_label = Label(label_frame, text='Balance', bg=background_color, fg='black', font=('Arial', 16))
     balance_label.place(x=40, y=660)
-    balance_text = Entry(label_frame, bg='white', font=('Arial', 16))
+    balance_text = Entry(label_frame, bg='white', font=('Arial', 16), textvariable=balance_var)
     balance_text.place(x=40, y=690)
+    balance_text.config(state='disabled')
+
+    total_charge_var.trace('w', lambda a, b, c: my_tracer(balance_var, window))
+    payments_made_var.trace('w', lambda a, b, c: my_tracer(balance_var, window))
 
     if result[0][2] == 'Unavailable/Occupied':
         cur = conn.cursor()
@@ -130,6 +149,7 @@ def room(roomNumber, firstName=None, lastName=None, dateMade=None, dateCheckIn=N
         guest_name_text.insert(0, str(guest[0][0]) + ' ' + str(guest[0][1]))
         guest_name_text.config(state='disabled')
 
+        print(result[0][4])
         check_in_text.insert(0, result[0][4])
         check_in_text.config(state='disabled')
         expected_check_out_text.insert(0, result[0][5])
@@ -140,9 +160,11 @@ def room(roomNumber, firstName=None, lastName=None, dateMade=None, dateCheckIn=N
         payments_made_text.config(state='disabled')
         balance_text.insert(0, result[0][9])
         balance_text.config(state='disabled')
-        btn = Button(label_frame, text='Check Out', bg='white', font=('Arial', 16), command=lambda room_number=room_number_text: checkOut(room_number))
+        btn = Button(label_frame, text='Check Out', bg='white', font=('Arial', 16),
+                     command=lambda room_number=room_number_text: checkOut(room_number))
 
-        view_button = Button(label_frame, text='View Guest', font=('Arial', 12), command=lambda: guestInfo(result[0][6]))
+        view_button = Button(label_frame, text='View Guest', font=('Arial', 12),
+                             command=lambda: guestInfo(result[0][6]))
 
     elif result[0][2] == 'Available':
         if firstName is None and lastName is None and dateCheckIn is None and dateCheckOut is None:
@@ -156,7 +178,8 @@ def room(roomNumber, firstName=None, lastName=None, dateMade=None, dateCheckIn=N
             guest_name_text.place(x=40, y=50)
             guest_name_text['values'] = guests
             label_frame.option_add('*TCombobox*Listbox.font', ('Arial', 16))
-
+            check_in_text.config(state='readonly')
+            expected_check_out_text.config(state='readonly')
         else:
             guest_name_text = Entry(label_frame, font=('Arial', 16))
             guest_name_text.place(x=40, y=50)
@@ -179,7 +202,8 @@ def room(roomNumber, firstName=None, lastName=None, dateMade=None, dateCheckIn=N
                                                                                                     payments_made,
                                                                                                     balance))
 
-        view_button = Button(label_frame, text='View Guest', font=('Arial', 12), command=lambda: guestInfo(guest_name_text))
+        view_button = Button(label_frame, text='View Guest', font=('Arial', 12),
+                             command=lambda: guestInfo(guest_name_text))
 
     btn.place(x=140, y=760)
     view_button.place(x=305, y=50)
